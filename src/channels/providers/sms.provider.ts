@@ -16,10 +16,17 @@ export class SmsProvider implements NotificationChannel {
   constructor(config: ConfigService) {
     const sms = config.get('sms');
     this.from = sms.fromNumber;
-    this.client =
-      sms.accountSid && sms.authToken
-        ? twilio(sms.accountSid, sms.authToken)
-        : null;
+    if (sms.apiKeySid && sms.apiKeySecret && sms.accountSid) {
+      // Production: Standard API Key auth.
+      this.client = twilio(sms.apiKeySid, sms.apiKeySecret, {
+        accountSid: sms.accountSid,
+      });
+    } else if (sms.accountSid && sms.authToken) {
+      // Account SID + Auth Token — also the path Twilio test credentials use.
+      this.client = twilio(sms.accountSid, sms.authToken);
+    } else {
+      this.client = null;
+    }
   }
 
   async send(recipient: string, content: RenderedContent): Promise<SendResult> {

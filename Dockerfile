@@ -14,6 +14,6 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 
-# Default command runs the API. The worker service overrides this with:
-#   node dist/worker.js
-CMD ["node", "dist/main.js"]
+# Same image serves both roles. Default is the API; set SERVICE_ROLE=worker
+# (Railway worker service) to run the queue consumer instead.
+CMD ["sh", "-c", "if [ \"$SERVICE_ROLE\" = worker ]; then node dist/worker.js; else node dist/main.js; fi"]
