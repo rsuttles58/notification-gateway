@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notifications
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  # App services — opt-in via `docker compose --profile full up`.
+  # Left out of the default `up` so they don't clash with host `npm run start:*`.
+  web:
+    build: .
+    profiles: ["full"]
+    command: node dist/main.js
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/notifications
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3000:3000"
+    depends_on: [postgres, redis]
+
+  worker:
+    build: .
+    profiles: ["full"]
+    command: node dist/worker.js
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/notifications
+      REDIS_URL: redis://redis:6379
+    depends_on: [postgres, redis]
+
+volumes:
+  pgdata:
